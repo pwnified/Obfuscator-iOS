@@ -66,7 +66,7 @@
      * @warning The salt used to obfuscate must be exactly the same for reveal to work.
      * @return Original NSString which you can use for REST API Authenitcation, URL's etc.
      */
-    - (NSString *)reveal:(const unsigned char *)string;
+    - (NSString *)reveal:(const char *)string;
 
     /*!
      * @brief Generates Objective-C code for obfuscating security-sensitive string.
@@ -116,7 +116,7 @@
                         ];
      [Obfuscator generateCodeWithSalt:salts WithStrings:strings];
      */
-    + (BOOL)generateCodeWithSalt:(NSArray *)classes WithStrings:(NSArray *)strings;
+    + (NSDictionary *)generateCodeWithSalt:(NSArray *)classes WithStrings:(NSArray *)strings;
 
     /*!
      * @brief Stores Salt(s) in an internal key-value database.
@@ -130,7 +130,6 @@
      * available to Swift code by using: `+ (NSString *)reveal:UsingStoredSalt:` or `+ (instancetype)newUsingStoredSalt:`.
      */
     + (void)storeKey:(NSString *)key forSalt:(Class)class, ... NS_REQUIRES_NIL_TERMINATION;
-
     /*!
      * @brief Converts obfuscated hard-coded C-String back to original string during run-time.
      * @discussion Uses salt stored in internal key-value database to unobfuscate.
@@ -139,6 +138,6 @@
      * @warning Can be used in Swift along with `- (NSString *)reveal:`.
      * @return Original NSString which you can use for REST API Authenitcation, URL's etc.
      */
-    + (NSString *)reveal:(const unsigned char *)string UsingStoredSalt:(NSString *)key;
+    + (NSString *)reveal:(const char *)string UsingStoredSalt:(NSString *)key;
 
 @end

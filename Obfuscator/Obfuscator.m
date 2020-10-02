@@ -15,13 +15,11 @@
     + (NSString *)hashSaltUsingSHA1:(NSString *)salt;
     + (NSString *)printHex:(NSString *)string;
     + (NSString *)printHex:(NSString *)string WithKey:(NSString *)key;
-    - (NSString *)CStringToNSString:(const unsigned char *)cstring;
-    - (unsigned char *)convertNSStringtoCString:(NSString *)string;
     - (NSString *)hexByObfuscatingString:(NSString *)string silence:(BOOL)silence;
     + (BOOL)generateCodeWithSaltUnsafe:(NSString *)salt WithStrings:(NSArray *)strings silence:(BOOL)silence successfulP:(NSMutableArray **)successfulP unsuccessfulP:(NSMutableArray **)unsuccessfulP;
     + (NSArray *) allPermutationsOfArray:(NSArray*)array;
     + (NSString *) stringFromClasses:(NSArray *)classes;
-    + (void) logCodeWithSuccessful:(NSArray *)successful unsuccessful:(NSArray *)unsuccessful;
+    + (NSDictionary *) logCodeWithSuccessful:(NSArray *)successful unsuccessful:(NSArray *)unsuccessful;
 @end
 
 @implementation Obfuscator
@@ -32,28 +30,32 @@
 // does not bridge over.
 static NSMutableDictionary *saltDatabase;
 
++ (void)initialize {
+    saltDatabase = @{}.mutableCopy;
+}
 
-+ (void)storeKey:(NSString *)key forSalt:(Class)class, ...
-{
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        saltDatabase = [[NSMutableDictionary alloc] init];
-    });
-    
-    NSMutableString *classes = nil;
-    
-    id eachClass;
-    va_list argumentList;
-    if (class) // The first argument isn't part of the varargs list,
-    {
-        classes = [[NSMutableString alloc] initWithString:NSStringFromClass(class)];
++ (void)storeKey:(NSString *)key classes:(NSArray<Class> *)classes {
+    NSMutableString *salt = @"".mutableCopy;
+    for (id class in classes) {
+        [salt appendString:NSStringFromClass(class)];
+    }
+    @synchronized (saltDatabase) {
+        saltDatabase[key] = salt.copy;
+    }
+}
+
++ (void)storeKey:(NSString *)key forSalt:(Class)class, ... {
+    NSMutableArray *classes = @[].mutableCopy;
+    if (class) { // The first argument isn't part of the varargs list,
+        id eachClass;
+        va_list argumentList;
+        [classes addObject:class];
         va_start(argumentList, class); // Start scanning for arguments after class.
         while ((eachClass = va_arg(argumentList, id))) // As many times as we can get an argument of type "id"
-            [classes appendString:NSStringFromClass(eachClass)];
+            [classes addObject:eachClass];
         va_end(argumentList);
     }
-    
-    [saltDatabase setValue:[classes copy] forKey:key];
+    [self storeKey:key classes:classes.copy];
 }
 
 + (instancetype)newWithSalt:(Class)class, ...
@@ -76,7 +78,10 @@ static NSMutableDictionary *saltDatabase;
 
 + (instancetype)newUsingStoredSalt:(NSString *)key
 {
-    NSString *storedSalt = [saltDatabase valueForKey:key];
+    NSString *storedSalt = nil;
+    @synchronized (saltDatabase) {
+        storedSalt = [saltDatabase valueForKey:key];
+    }
     if (storedSalt == nil)
         return nil;
     
@@ -101,25 +106,17 @@ static NSMutableDictionary *saltDatabase;
 
 - (NSString *)hexByObfuscatingString:(NSString *)string silence:(BOOL)silence
 {
-    
-#ifdef DEBUG
-    
-    //Convert string to C-String
-    unsigned char * c_string = [self convertNSStringtoCString:string];
-    NSString *obfuscatedString = [self reveal:c_string];
+    //Obfuscate the string
+    NSString *obfuscatedString = [self reveal:string.UTF8String];
     
     //Test if Obfuscator worked
-    unsigned char * c_string_obfuscated = [self convertNSStringtoCString:obfuscatedString];
-    NSString *backToOriginal = [self reveal:c_string_obfuscated];
-    free(c_string_obfuscated);
-    
-    free(c_string);
-    
+    NSString *backToOriginal = [self reveal:obfuscatedString.UTF8String];
+
     if ([string isEqualToString:backToOriginal])
     {
         NSString *hexCode = [Obfuscator printHex:obfuscatedString];
         if (silence == NO)
-            NSLog(@"Objective-C Code:\nextern const unsigned char *key;\n//Original: \"%@\"\n%@\nconst unsigned char *key = &_key[0];\n*********REMOVE THIS BEFORE DEPLOYMENT*********\n", string, hexCode);
+            NSLog(@"Objective-C Code:\nextern const char *key;\n//Original: \"%@\"\n%@\nconst char *key = &_key[0];\n*********REMOVE THIS BEFORE DEPLOYMENT*********\n", string, hexCode);
         return obfuscatedString;
     }
     else
@@ -128,15 +125,15 @@ static NSMutableDictionary *saltDatabase;
             NSLog(@"Could not obfuscate: %@ - Use different salt", string);
         return nil;
     }
-    
-#endif
-    
     return nil;
 }
 
-+ (NSString *)reveal:(const unsigned char *)string UsingStoredSalt:(NSString *)key
++ (NSString *)reveal:(const char *)string UsingStoredSalt:(NSString *)key
 {
-    NSString *storedSalt = [saltDatabase valueForKey:key];
+    NSString *storedSalt = nil;
+    @synchronized (saltDatabase) {
+        storedSalt = [saltDatabase valueForKey:key];
+    }
     if (storedSalt == nil)
         return nil;
     
@@ -144,24 +141,25 @@ static NSMutableDictionary *saltDatabase;
     return [o reveal:string];
 }
 
-- (NSString *)reveal:(const unsigned char *)string
+- (NSString *)reveal:(const char *)string
 {
     // Create data object from the C-String
-    NSData *data = [[self CStringToNSString:string] dataUsingEncoding:NSUTF8StringEncoding];
+    NSData *data = [@(string) dataUsingEncoding:NSUTF8StringEncoding];
     
     // Get pointer to data to obfuscate
-    char *dataPtr = (char *) [data bytes];
+    char *dataPtr = (char *)data.bytes;
+    char *dataEnd = dataPtr + data.length;
     
     // Get pointer to key data
-    char *keyData = (char *) [[_salt dataUsingEncoding:NSUTF8StringEncoding] bytes];
+    NSData *k = [_salt dataUsingEncoding:NSUTF8StringEncoding];
+    char *keyData = (char *)k.bytes;
     
     // Points to each char in sequence in the key
     char *keyPtr = keyData;
-    char *keyEnd = keyData + _salt.length;
-    
+    char *keyEnd = keyData + k.length;
+
     // For each character in data, xor with current value in key
-    for (int x = 0; x < data.length; x++)
-    {
+    while (dataPtr < dataEnd) {
         // Replace current character in data with
         // current character xor'd with current key value.
         // Bump each pointer to the next character
@@ -171,7 +169,7 @@ static NSMutableDictionary *saltDatabase;
         
         // If at end of key data, reset count and
         // set key pointer back to start of key value
-        if (keyPtr == keyEnd) {
+        if (keyPtr >= keyEnd) {
             keyPtr = keyData;
         }
     }
@@ -183,16 +181,11 @@ static NSMutableDictionary *saltDatabase;
 
 + (BOOL)generateCodeWithSaltUnsafe:(NSString *)salt WithStrings:(NSArray *)strings
 {
-#ifdef DEBUG
     return [self generateCodeWithSaltUnsafe:salt WithStrings:strings silence:NO successfulP:nil unsuccessfulP:nil];
-#endif
-    
-    return YES;
 }
 
-+ (BOOL)generateCodeWithSalt:(NSArray *)classes WithStrings:(NSArray *)strings
++ (NSDictionary *)generateCodeWithSalt:(NSArray *)classes WithStrings:(NSArray *)strings
 {
-#ifdef DEBUG
     NSArray *successful = nil;
     NSArray *unsuccessful = nil;
     NSArray *selectedClasses = nil;
@@ -237,21 +230,20 @@ static NSMutableDictionary *saltDatabase;
     }
 
     //Print out best salt.
-    NSMutableString *salt = [[NSMutableString alloc] init];
+    NSMutableArray *assault = @[].mutableCopy;
     for (Class class in selectedClasses) {
-        [salt appendFormat:@"%@.class, ", NSStringFromClass(class)];
+        [assault addObject:[NSString stringWithFormat:@"%@.class", NSStringFromClass(class)]];
     }
+    NSString *salt = [assault componentsJoinedByString:@", "];
 
-    NSLog(@"🧂🧂🧂🧂 Salt used (in this order): %@nil\n", salt);
+    NSLog(@"🧂 Salt used (in this order): %@\n", salt);
     
-    [self logCodeWithSuccessful:successful unsuccessful:unsuccessful];
-#endif
-    return YES;
+    NSDictionary *code = [self logCodeWithSuccessful:successful unsuccessful:unsuccessful];
+    return @{@"successful": successful, @"unsuccessful": unsuccessful, @"salt": salt?:@"", @"code": code?:@{} };
 }
 
 + (BOOL)generateCodeWithSaltUnsafe:(NSString *)salt WithStrings:(NSArray *)strings silence:(BOOL)silence successfulP:(NSMutableArray **)successfulP unsuccessfulP:(NSMutableArray **)unsuccessfulP;
 {
-#ifdef DEBUG
     // Function will return YES if process was successful in obfuscating ALL provided strings.
     // If even 1 string was not possible to obfuscate, then function will return NO.
     BOOL allSuccess = YES;
@@ -279,7 +271,7 @@ static NSMutableDictionary *saltDatabase;
         else if ([obj isKindOfClass:[NSDictionary class]])
         {
             NSDictionary *dict = obj;
-            for (NSString *key in dict.allKeys) {
+            for (NSString *key in [dict.allKeys sortedArrayUsingSelector:@selector(caseInsensitiveCompare:)]) {
                 NSString *value = dict[key];
                 NSString *result = [o hexByObfuscatingString:value silence:YES];
                 if (result) {
@@ -298,8 +290,6 @@ static NSMutableDictionary *saltDatabase;
     }
 
     return allSuccess;
-#endif
-    return YES;
 }
 
 #pragma mark - Helper Functions
@@ -326,40 +316,6 @@ static NSMutableDictionary *saltDatabase;
     return [output copy];
 }
 
-
-/*!
- * @brief Converts C-String to NSString.
- * @discussion For use with reveal:
- * @param cstring Hard-Coded C-String
- * @return NSString version of cstring
- */
-- (NSString *)CStringToNSString:(const unsigned char *)cstring
-{
-    return [[NSString alloc] initWithFormat:@"%s", cstring];
-}
-
-/*!
- * @brief Converts a NSString to a C-String.
- * @discussion Used by hexByObfuscatingString: method.
- * Uses malloc function which returns a pointer. See warning.
- * @param string A NSString to be converted to a C-String
- * @warning Make sure you free the generated pointer to avoid a memory leak.
- * @return A pointer to the initial char of the C-String.
- */
-- (unsigned char *)convertNSStringtoCString:(NSString *)string
-{
-    unsigned long length = [string length];
-    
-    unsigned char *temp;
-    temp = (unsigned char *)malloc((length+1) * sizeof (unsigned char)); //Holds C String
-    for (int i=0; i<length; i++) {
-        temp[i] = (unsigned char)[string characterAtIndex:i];
-    }
-    temp[length] = 0;
-    
-    return temp;
-}
-
 + (NSString *)printHex:(NSString *)string
 {
     return [self printHex:string WithKey:nil];
@@ -379,7 +335,7 @@ static NSMutableDictionary *saltDatabase;
         key = @"key";
     
     NSMutableString *temp = [[NSMutableString alloc] initWithString:
-                             [[NSString alloc] initWithFormat:@"const unsigned char _%@[] = { ",key]];
+                             [[NSString alloc] initWithFormat:@"const char _%@[] = { ",key]];
 
     for (int i = 0; i < [string length]; i++)
     {
@@ -395,7 +351,7 @@ static NSMutableDictionary *saltDatabase;
     return [temp copy];
 }
 
-+ (void) logCodeWithSuccessful:(NSArray *)successful unsuccessful:(NSArray *)unsuccessful
++ (NSDictionary *) logCodeWithSuccessful:(NSArray *)successful unsuccessful:(NSArray *)unsuccessful
 {
     // Print out unsuccessful strings
     if ([unsuccessful count] != 0)
@@ -411,25 +367,27 @@ static NSMutableDictionary *saltDatabase;
     //Print out Objective-C code for successful strings
     if ([successful count] != 0)
     {
-        NSMutableString *header = [[NSMutableString alloc] initWithString:@""];
-        NSMutableString *implementation = [[NSMutableString alloc] initWithString:@""];
+        NSMutableString *header = @"".mutableCopy;
+        NSMutableString *implementation = @"".mutableCopy;
         
         for (NSDictionary *s in successful) {
             NSString *key = [s objectForKey:@"key"];
             if (key == nil)
             {
-                [header appendFormat:@"extern const unsigned char *key;\n"];
-                [implementation appendFormat:@"//Original: \"%@\"\n%@\nconst unsigned char *key = &_%@[0];\n\n", s[@"original"], [self printHex:s[@"obfuscated"]], @"key"];
+                [header appendFormat:@"extern const char *key;\n"];
+                [implementation appendFormat:@"//Original: \"%@\"\n%@\nconst char *key = &_%@[0];\n\n", s[@"original"], [self printHex:s[@"obfuscated"]], @"key"];
             }
             else{
-                [header appendFormat:@"extern const unsigned char *%@;\n", key];
-                [implementation appendFormat:@"//Original: \"%@\"\n%@\nconst unsigned char *%@ = &_%@[0];\n\n",s[@"original"],[self printHex:s[@"obfuscated"] WithKey:s[@"key"]],key,key];
+                [header appendFormat:@"extern const char *%@;\n", key];
+                [implementation appendFormat:@"//Original: \"%@\"\n%@\nconst char *%@ = &_%@[0];\n\n",s[@"original"],[self printHex:s[@"obfuscated"] WithKey:s[@"key"]],key,key];
             }
         }
         
         //Header and Implentation file
         NSLog(@"Objective-C Code:\n\n// **********Globals.h**********\n%@\n// **********Globals.m**********\n%@", header, implementation);
+        return @{@"header": header, @"implementation": implementation};
     }
+    return nil;
 }
 
 
