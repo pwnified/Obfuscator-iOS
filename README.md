@@ -137,9 +137,9 @@ More Advanced Usage
 	
     [Obfuscator generateCodeWithSalt:@[[NSString class], [AppDelegate class], [NSObject class]]
                          WithStrings:@[
-                                       @{@"id": @"AA", @"string":@"testSecret"},
-                                       @{@"id": @"BB", @"string":@"testKey"},
-                                       @{@"id": @"CC", @"string":@"parseKey1234"},
+                                       @{@"AA": @"testSecret"},
+                                       @{@"BB": @"testKey"},
+                                       @{@"CC": @"parseKey1234"},
                                        ]];
 
 

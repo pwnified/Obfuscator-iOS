@@ -10,7 +10,7 @@
 #include <CommonCrypto/CommonCrypto.h>
 
 @interface Obfuscator ()
-    @property (strong) NSString *salt;
+    @property (nonatomic, strong) NSString *salt;
 
     + (NSString *)hashSaltUsingSHA1:(NSString *)salt;
     + (NSString *)printHex:(NSString *)string;
@@ -35,10 +35,12 @@ static NSMutableDictionary *saltDatabase;
 
 + (void)storeKey:(NSString *)key forSalt:(Class)class, ...
 {
-    if (saltDatabase == nil)
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
         saltDatabase = [[NSMutableDictionary alloc] init];
+    });
     
-    NSMutableString *classes;
+    NSMutableString *classes = nil;
     
     id eachClass;
     va_list argumentList;
@@ -151,14 +153,14 @@ static NSMutableDictionary *saltDatabase;
     char *dataPtr = (char *) [data bytes];
     
     // Get pointer to key data
-    char *keyData = (char *) [[self.salt dataUsingEncoding:NSUTF8StringEncoding] bytes];
+    char *keyData = (char *) [[_salt dataUsingEncoding:NSUTF8StringEncoding] bytes];
     
     // Points to each char in sequence in the key
     char *keyPtr = keyData;
-    int keyIndex = 0;
+    char *keyEnd = keyData + _salt.length;
     
     // For each character in data, xor with current value in key
-    for (int x = 0; x < [data length]; x++)
+    for (int x = 0; x < data.length; x++)
     {
         // Replace current character in data with
         // current character xor'd with current key value.
@@ -169,8 +171,9 @@ static NSMutableDictionary *saltDatabase;
         
         // If at end of key data, reset count and
         // set key pointer back to start of key value
-        if (++keyIndex == [self.salt length])
-            keyIndex = 0, keyPtr = keyData;
+        if (keyPtr == keyEnd) {
+            keyPtr = keyData;
+        }
     }
     
     return [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
@@ -190,9 +193,9 @@ static NSMutableDictionary *saltDatabase;
 + (BOOL)generateCodeWithSalt:(NSArray *)classes WithStrings:(NSArray *)strings
 {
 #ifdef DEBUG
-    NSArray *successful;
-    NSArray *unsuccessful;
-    NSArray *selectedClasses;
+    NSArray *successful = nil;
+    NSArray *unsuccessful = nil;
+    NSArray *selectedClasses = nil;
     
     //Get permutations of salt
     NSArray *permutations = [self allPermutationsOfArray:classes];
@@ -236,10 +239,10 @@ static NSMutableDictionary *saltDatabase;
     //Print out best salt.
     NSMutableString *salt = [[NSMutableString alloc] init];
     for (Class class in selectedClasses) {
-        [salt appendFormat:@"[%@ class],", NSStringFromClass(class)];
+        [salt appendFormat:@"%@.class, ", NSStringFromClass(class)];
     }
 
-    NSLog(@"Salt used (in this order): %@\n", salt);
+    NSLog(@"🧂🧂🧂🧂 Salt used (in this order): %@nil\n", salt);
     
     [self logCodeWithSuccessful:successful unsuccessful:unsuccessful];
 #endif
@@ -260,33 +263,31 @@ static NSMutableDictionary *saltDatabase;
     Obfuscator *o = [Obfuscator newWithSaltUnsafe:salt];
     
     //Loop through list of strings
-    for (id string in strings) {
+    for (id obj in strings) {
         
-        if ([string isKindOfClass:[NSString class]])
+        if ([obj isKindOfClass:[NSString class]])
         {
+            NSString *string = obj;
             NSString *result = [o hexByObfuscatingString:string silence:YES];
-            if (result == nil) //Unsuccessful
-            {
+            if (result) {
+                [successful addObject:@{@"original": string, @"obfuscated": result}];
+            } else {
                 [unsuccessful addObject:string];
                 allSuccess = NO;
             }
-            else
-            {
-                [successful addObject:@{@"original": string, @"obfuscated": result}];
-            }
         }
-        else if ([string isKindOfClass:[NSDictionary class]])
+        else if ([obj isKindOfClass:[NSDictionary class]])
         {
-            NSString *result = [o hexByObfuscatingString:[string objectForKey:@"string"]
-                                                 silence:YES];
-            if (result == nil) //Unsuccessful
-            {
-                [unsuccessful addObject:[string objectForKey:@"string"]];
-                allSuccess = NO;
-            }
-            else
-            {
-                [successful addObject:@{@"original": string[@"string"], @"key": string[@"id"], @"obfuscated": result}];
+            NSDictionary *dict = obj;
+            for (NSString *key in dict.allKeys) {
+                NSString *value = dict[key];
+                NSString *result = [o hexByObfuscatingString:value silence:YES];
+                if (result) {
+                    [successful addObject:@{@"original": value, @"key": key, @"obfuscated": result}];
+                } else {
+                    [unsuccessful addObject:value];
+                    allSuccess = NO;
+                }
             }
         }
     }
@@ -427,7 +428,7 @@ static NSMutableDictionary *saltDatabase;
         }
         
         //Header and Implentation file
-        NSLog(@"Objective-C Code:\n**********Globals.h**********\n%@\n**********Globals.m**********\n%@", header, implementation);
+        NSLog(@"Objective-C Code:\n\n// **********Globals.h**********\n%@\n// **********Globals.m**********\n%@", header, implementation);
     }
 }
 

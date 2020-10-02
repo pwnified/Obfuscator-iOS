@@ -111,8 +111,8 @@
      * @code
      NSArray *salts = @[[AppDelegate class], [NSObject class], [NSString class]];
      NSArray *strings = @[
-                            @{@"id": @"awsKey", @"string": @"123456ABC"},
-                            @{@"id": @"parseKey", @"string": @"98765DEF"},
+                            @{@"awsKey": @"123456ABC"},
+                            @{@"parseKey": @"98765DEF"},
                         ];
      [Obfuscator generateCodeWithSalt:salts WithStrings:strings];
      */
