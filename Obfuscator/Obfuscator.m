@@ -106,6 +106,7 @@ static NSMutableDictionary *saltDatabase;
 
 - (NSString *)hexByObfuscatingString:(NSString *)string silence:(BOOL)silence
 {
+#if defined (DEBUG) || defined (CLI_ENABLED)
     //Obfuscate the string
     NSString *obfuscatedString = [self reveal:string.UTF8String];
     
@@ -125,6 +126,7 @@ static NSMutableDictionary *saltDatabase;
             NSLog(@"Could not obfuscate: %@ - Use different salt", string);
         return nil;
     }
+#endif
     return nil;
 }
 
@@ -181,11 +183,16 @@ static NSMutableDictionary *saltDatabase;
 
 + (BOOL)generateCodeWithSaltUnsafe:(NSString *)salt WithStrings:(NSArray *)strings
 {
+#if defined (DEBUG) || defined (CLI_ENABLED)
     return [self generateCodeWithSaltUnsafe:salt WithStrings:strings silence:NO successfulP:nil unsuccessfulP:nil];
+#else
+    return NO;
+#endif
 }
 
 + (NSDictionary *)generateCodeWithSalt:(NSArray *)classes WithStrings:(NSArray *)strings
 {
+#if defined (DEBUG) || defined (CLI_ENABLED)
     NSArray *successful = nil;
     NSArray *unsuccessful = nil;
     NSArray *selectedClasses = nil;
@@ -240,10 +247,14 @@ static NSMutableDictionary *saltDatabase;
     
     NSDictionary *code = [self logCodeWithSuccessful:successful unsuccessful:unsuccessful];
     return @{@"successful": successful, @"unsuccessful": unsuccessful, @"salt": salt?:@"", @"code": code?:@{} };
+#else
+    return nil;
+#endif
 }
 
 + (BOOL)generateCodeWithSaltUnsafe:(NSString *)salt WithStrings:(NSArray *)strings silence:(BOOL)silence successfulP:(NSMutableArray **)successfulP unsuccessfulP:(NSMutableArray **)unsuccessfulP;
 {
+#if defined (DEBUG) || defined (CLI_ENABLED)
     // Function will return YES if process was successful in obfuscating ALL provided strings.
     // If even 1 string was not possible to obfuscate, then function will return NO.
     BOOL allSuccess = YES;
@@ -288,8 +299,10 @@ static NSMutableDictionary *saltDatabase;
     {
         [self logCodeWithSuccessful:successful unsuccessful:unsuccessful];
     }
-
     return allSuccess;
+#else
+    return NO;
+#endif
 }
 
 #pragma mark - Helper Functions
