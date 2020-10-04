@@ -7,22 +7,9 @@
 
 #import <Foundation/Foundation.h>
 #import "Obfuscator.h"
+#import "NSFileHandle+Utilities.h"
 
 #define VA(...) [NSString stringWithFormat:__VA_ARGS__]
-
-@interface NSFileHandle (stringWriting)
-- (void)writeString:(NSString *)str error:(out NSError **)error;
-- (void)writeString:(NSString *)str;
-@end
-
-@implementation NSFileHandle (stringWriting)
-- (void)writeString:(NSString *)str error:(out NSError **)error {
-	[self writeData:[str dataUsingEncoding:NSUTF8StringEncoding] error:error];
-}
-- (void)writeString:(NSString *)str {
-	[self writeData:[str dataUsingEncoding:NSUTF8StringEncoding] error:nil];
-}
-@end
 
 @interface Obsfucationator : NSObject
 @end
@@ -98,6 +85,7 @@ int main(int argc, const char *argv[]) {
 		}
 		[stream open];
 
+		[NSFileManager.defaultManager removeItemAtPath:outputFilename error:nil];
 		[NSFileManager.defaultManager createFileAtPath:outputFilename contents:nil attributes:nil];
 		NSFileHandle *output = [NSFileHandle fileHandleForWritingAtPath:outputFilename];
 		if (!output) {
@@ -110,9 +98,7 @@ int main(int argc, const char *argv[]) {
 			return -1;
 		}
 		NSDictionary *gen = [Obfuscator generateCodeWithSalt:classes WithStrings:json];
-		int ret = gen.count>0 ? [Obsfucationator writeHeader:gen output:output] : -1;
-		[output truncateAtOffset:output.offsetInFile error:nil];
-		return ret;
+		return gen.count>0 ? [Obsfucationator writeHeader:gen output:output] : -1;
 	}
 }
 
