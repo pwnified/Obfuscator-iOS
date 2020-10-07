@@ -92,7 +92,8 @@ int main(int argc, const char *argv[]) {
 			NSLog(@"Can't open output file for writing: %@", outputFilename);
 			return -1;
 		}
-		NSArray *json = [NSJSONSerialization JSONObjectWithStream:stream options:0 error:nil];
+		NSError *error = nil;
+		NSArray *json = [NSJSONSerialization JSONObjectWithStream:stream options:0 error:&error];
 		if ([json isKindOfClass:NSArray.class] == NO || json.count == 0) {
 			NSLog(@"Problem with input, needs a single json array: %@", inputFilename);
 			return -1;

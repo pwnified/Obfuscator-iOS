@@ -107,24 +107,23 @@ static NSMutableDictionary *saltDatabase;
 - (NSString *)hexByObfuscatingString:(NSString *)string silence:(BOOL)silence
 {
 #if defined (DEBUG) || defined (CLI_ENABLED)
-    //Obfuscate the string
-    NSString *obfuscatedString = [self reveal:string.UTF8String];
-    
-    //Test if Obfuscator worked
-    NSString *backToOriginal = [self reveal:obfuscatedString.UTF8String];
+    if (string) {
+        //Obfuscate the string
+        NSString *obfuscatedString = [self reveal:string.UTF8String];
 
-    if ([string isEqualToString:backToOriginal])
-    {
-        NSString *hexCode = [Obfuscator printHex:obfuscatedString];
-        if (silence == NO)
-            NSLog(@"Objective-C Code:\nextern const char *key;\n//Original: \"%@\"\n%@\nconst char *key = &_key[0];\n*********REMOVE THIS BEFORE DEPLOYMENT*********\n", string, hexCode);
-        return obfuscatedString;
-    }
-    else
-    {
-        if (silence == NO)
+        //Test if Obfuscator worked
+        NSString *backToOriginal = [self reveal:obfuscatedString.UTF8String];
+
+        if ([string isEqualToString:backToOriginal]) {
+            NSString *hexCode = [Obfuscator printHex:obfuscatedString];
+            if (silence == NO) {
+                NSLog(@"Objective-C Code:\nextern const char *key;\n//Original: \"%@\"\n%@\nconst char *key = &_key[0];\n*********REMOVE THIS BEFORE DEPLOYMENT*********\n", string, hexCode);
+            }
+            return obfuscatedString;
+        }
+        if (silence == NO) {
             NSLog(@"Could not obfuscate: %@ - Use different salt", string);
-        return nil;
+        }
     }
 #endif
     return nil;
@@ -143,22 +142,27 @@ static NSMutableDictionary *saltDatabase;
     return [o reveal:string];
 }
 
-- (NSString *)reveal:(const char *)string
-{
+
+// This was a possible bug... NSData is immutable. It was casting the const away and stomping the internal data.
+// Changed to NSMutableData and (char *)[data mutableBytes]
+- (NSString *)reveal:(const char *)string {
+    if (!string) {
+        return nil;
+    }
     // Create data object from the C-String
-    NSData *data = [@(string) dataUsingEncoding:NSUTF8StringEncoding];
+    NSMutableData *data = [@(string) dataUsingEncoding:NSUTF8StringEncoding].mutableCopy;
     
     // Get pointer to data to obfuscate
-    char *dataPtr = (char *)data.bytes;
-    char *dataEnd = dataPtr + data.length;
+    char *dataPtr = (char *)data.mutableBytes;
+    const char *dataEnd = dataPtr + data.length;
     
     // Get pointer to key data
     NSData *k = [_salt dataUsingEncoding:NSUTF8StringEncoding];
-    char *keyData = (char *)k.bytes;
+    const char *keyData = k.bytes;
     
     // Points to each char in sequence in the key
-    char *keyPtr = keyData;
-    char *keyEnd = keyData + k.length;
+    const char *keyPtr = keyData;
+    const char *keyEnd = keyData + k.length;
 
     // For each character in data, xor with current value in key
     while (dataPtr < dataEnd) {
@@ -337,30 +341,18 @@ static NSMutableDictionary *saltDatabase;
 /*!
  * @brief Generates the Objective-C Code to define and initialize a global C-String (initialized in hexadecimal).
  * @discussion Hard-coded NSString objects are easily discoverable when using a jail-broken iPhone.
- * It is better to obfuscate the desired strings as C-Strings initialized in hexadecimal notation.
+ * It is better to obfuscate the desired strings as C-Strings initialized with hashed data.
  * @param string A string that you wish to hardcode in your app as a C-String.
  * @param key The name of the generated C-Array that refers to the C-String.
- * @return Objective-C code to embed in your app to define and initialize a global C-String.
+ * @return C code to embed in your app to define and initialize a global C-String.
  */
-+ (NSString *)printHex:(NSString *)string WithKey:(NSString *)key
-{
-    if (key == nil)
-        key = @"key";
-    
-    NSMutableString *temp = [[NSMutableString alloc] initWithString:
-                             [[NSString alloc] initWithFormat:@"const char _%@[] = { ",key]];
++ (NSString *)printHex:(NSString *)string WithKey:(NSString *)key {
 
-    for (int i = 0; i < [string length]; i++)
-    {
-        if (i != 0)
-            [temp appendString:@", "];
-        
-        int ascii = [string characterAtIndex:i];
-        NSString *t = [[[NSString alloc] initWithFormat:@"%x",ascii] uppercaseString];
-        [temp appendFormat:@"0x%@", t];
+    NSMutableString *temp = [NSMutableString stringWithFormat:@"const char _%@[] = { ", key ?: @"key"];
+    for (int i = 0; i < [string length]; i++) {
+        [temp appendFormat:@"0x%X, ", [string characterAtIndex:i]];
     }
-    
-    [temp appendString:@", 0x00 };"];
+    [temp appendString:@"0x0 };"];
     return [temp copy];
 }
 
