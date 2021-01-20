@@ -197,15 +197,16 @@ static NSMutableDictionary *saltDatabase;
 + (NSDictionary *)generateCodeWithSalt:(NSArray *)classes WithStrings:(NSArray *)strings
 {
 #if defined (DEBUG) || defined (CLI_ENABLED)
-    NSArray *successful = nil;
-    NSArray *unsuccessful = nil;
-    NSArray *selectedClasses = nil;
+    __block NSArray *successful = nil;
+    __block NSArray *unsuccessful = nil;
+    __block NSArray *selectedClasses = nil;
     
     //Get permutations of salt
-    NSArray *permutations = [self allPermutationsOfArray:classes];
+    //NSArray *permutations = [self allPermutationsOfArray:classes];
     
     //Loop through all permutations
-    for (NSArray *permutation in permutations) {
+    [self enumerateAllPermutationsOfArray:classes block:^(NSArray *permutation, int count, BOOL *stop) {
+
         NSString *salt = [self stringFromClasses:permutation];
 //        NSLog(@"*+*+*+*+*+**+*+*+*+*+*+*+*+*+*+*+*");
         
@@ -230,25 +231,26 @@ static NSMutableDictionary *saltDatabase;
                 unsuccessful = [u copy];
                 selectedClasses = permutation;
             }
-            
-            if ([u count] == 0) //Perfect combination. All strings were obfuscated.
-            {
-                break;
-            }
         }
-        
+        if ([u count] == 0) //Perfect combination. All strings were obfuscated.
+        {
+            NSLog(@"Done after %d iterations", count);
+            *stop = YES;
+        }
 //        NSLog(@"*+*+*+*+*+**+*+*+*+*+*+*+*+*+*+*+*");
-    }
+    }];
 
     //Print out best salt.
     NSMutableArray *assault = @[].mutableCopy;
     for (Class class in selectedClasses) {
-        [assault addObject:[NSString stringWithFormat:@"%@.class", NSStringFromClass(class)]];
+        [assault addObject:[NSString stringWithFormat:@"%@", NSStringFromClass(class)]];
     }
-    NSString *salt = [assault componentsJoinedByString:@", "];
-
+    NSString *salt = [assault componentsJoinedByString:@".class, "];
+    salt = [salt stringByAppendingString:@".class"];
     NSLog(@"🧂 Salt used (in this order): %@\n", salt);
-    
+
+    NSLog(@"For optimizing build times: %@\n", [[self swapOptimize:assault] componentsJoinedByString:@"+"]);
+
     NSDictionary *code = [self logCodeWithSuccessful:successful unsuccessful:unsuccessful];
     return @{@"successful": successful, @"unsuccessful": unsuccessful, @"salt": salt?:@"", @"code": code?:@{} };
 #else
@@ -453,4 +455,62 @@ static NSMutableDictionary *saltDatabase;
     
     return [permutations copy];
 }
+
+
+/*!
+ * @brief enumerates all permutations of an array.
+ * @param array The input array.
+ * @param block block containing the next permutation, set stop to halt iteration.
+ * @discussion This doesn't allocate all the permutations into memory at once.
+ * Based on factoradic enumeration, see: http://www.roard.com/docs/cookbook/cbsu2.html
+ */
++ (void)enumerateAllPermutationsOfArray:(NSArray *)array block:(void (NS_NOESCAPE ^)(NSArray *permutation, int count, BOOL *stop))block {
+    int count = (int)array.count;
+    int swapLocs[count];
+    memset(swapLocs, 0, count*sizeof(int));
+    int outer = 0;
+    while (1) {
+        NSMutableArray *result = [NSMutableArray arrayWithArray:array];
+        for (int index = 0; index < count; index++) {
+            int upper = count-1-index;
+            if (swapLocs[index] != upper) {
+                [result exchangeObjectAtIndex:swapLocs[index] withObjectAtIndex:upper];
+            }
+        }
+        int index = count-1;
+        while (index >= 0) {
+            if (swapLocs[index] < count-1-index) {
+                swapLocs[index]++;
+                while (++index < count) {
+                    swapLocs[index] = 0;
+                }
+                break;
+            }
+            -- index;
+        }
+        BOOL stop = NO;
+        block(result, outer++, &stop);
+        if (stop || index < 0) {
+            break;
+        }
+    }
+}
+
+/*!
+ * @brief Back-permute the first iteration.
+ * @param array The input array.
+ * @return The permuted array.
+ * @discussion Unwind the winning permutation, so that it permutes back to the winner on the first iteration.
+ * Dependent on the factoradic enumeration algorithm (enumerateAllPermutationsOfArray)
+ */
++ (NSArray *)swapOptimize:(NSArray *)array {
+    NSMutableArray *optim = array.mutableCopy;
+    for (int i = 1; i < optim.count; i++) {
+        [optim exchangeObjectAtIndex:i withObjectAtIndex:0];
+    }
+    return optim.copy;
+}
+
+
+
 @end
