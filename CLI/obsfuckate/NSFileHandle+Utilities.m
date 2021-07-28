@@ -1,9 +1,6 @@
 //
 //  NSFileHandle+Utilities.m
-//  HDogLibrary
-//
 //  Created by Hamilton Feltman on 2020/9/15.
-//  Copyright © 2020 Harmonicdog. All rights reserved.
 //
 
 #import <Foundation/Foundation.h>
