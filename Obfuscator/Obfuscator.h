@@ -40,7 +40,7 @@
      * @warning The salt used to obfuscate must be exactly the same for reveal to work.
      * @return Obfuscator class instance.
      */
-    + (instancetype)newWithSalt:(Class)class, ... NS_REQUIRES_NIL_TERMINATION;
+    + (instancetype)newWithSalt:(Class)klass, ... NS_REQUIRES_NIL_TERMINATION;
 
     /*!
      * @brief Create Obfuscator class using salts stored in key-value database.
@@ -129,7 +129,7 @@
      * @warning Does not get bridged to Swift. Use from within Objective-C code so that the salts will become
      * available to Swift code by using: `+ (NSString *)reveal:UsingStoredSalt:` or `+ (instancetype)newUsingStoredSalt:`.
      */
-    + (void)storeKey:(NSString *)key forSalt:(Class)class, ... NS_REQUIRES_NIL_TERMINATION;
+    + (void)storeKey:(NSString *)key forSalt:(Class)klass, ... NS_REQUIRES_NIL_TERMINATION;
     /*!
      * @brief Converts obfuscated hard-coded C-String back to original string during run-time.
      * @discussion Uses salt stored in internal key-value database to unobfuscate.
