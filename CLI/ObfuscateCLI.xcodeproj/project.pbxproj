@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 50;
+	objectVersion = 54;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -28,7 +28,7 @@
 		33485826252963A200142BD9 /* NSFileHandle+Utilities.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSFileHandle+Utilities.h"; sourceTree = "<group>"; };
 		33485827252963A300142BD9 /* NSFileHandle+Utilities.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "NSFileHandle+Utilities.m"; sourceTree = "<group>"; };
 		3362D64C2527E9FF00954C41 /* readme.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = readme.md; sourceTree = "<group>"; };
-		33EEEA2F2526FC1800110544 /* obsfuckate */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = obsfuckate; sourceTree = BUILT_PRODUCTS_DIR; };
+		33EEEA2F2526FC1800110544 /* ObfuscateCLI */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = ObfuscateCLI; sourceTree = BUILT_PRODUCTS_DIR; };
 		33EEEA322526FC1800110544 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		33EEEA452526FD5D00110544 /* Obfuscator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Obfuscator.h; path = ../Obfuscator/Obfuscator.h; sourceTree = "<group>"; usesTabs = 0; };
 		33EEEA462526FD5D00110544 /* Obfuscator.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = Obfuscator.m; path = ../Obfuscator/Obfuscator.m; sourceTree = "<group>"; usesTabs = 0; };
@@ -49,8 +49,8 @@
 			isa = PBXGroup;
 			children = (
 				3362D64C2527E9FF00954C41 /* readme.md */,
+				33EEEA312526FC1800110544 /* obfuscate */,
 				33EEEA442526FD1500110544 /* Obsfucator */,
-				33EEEA312526FC1800110544 /* obsfuckate */,
 				33EEEA302526FC1800110544 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -58,19 +58,19 @@
 		33EEEA302526FC1800110544 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				33EEEA2F2526FC1800110544 /* obsfuckate */,
+				33EEEA2F2526FC1800110544 /* ObfuscateCLI */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		33EEEA312526FC1800110544 /* obsfuckate */ = {
+		33EEEA312526FC1800110544 /* obfuscate */ = {
 			isa = PBXGroup;
 			children = (
 				33EEEA322526FC1800110544 /* main.m */,
 				33485826252963A200142BD9 /* NSFileHandle+Utilities.h */,
 				33485827252963A300142BD9 /* NSFileHandle+Utilities.m */,
 			);
-			path = obsfuckate;
+			path = obfuscate;
 			sourceTree = "<group>";
 		};
 		33EEEA442526FD1500110544 /* Obsfucator */ = {
@@ -85,9 +85,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		33EEEA2E2526FC1800110544 /* obsfuckate */ = {
+		33EEEA2E2526FC1800110544 /* ObfuscateCLI */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 33EEEA362526FC1800110544 /* Build configuration list for PBXNativeTarget "obsfuckate" */;
+			buildConfigurationList = 33EEEA362526FC1800110544 /* Build configuration list for PBXNativeTarget "ObfuscateCLI" */;
 			buildPhases = (
 				33EEEA2B2526FC1800110544 /* Sources */,
 				33EEEA2C2526FC1800110544 /* Frameworks */,
@@ -97,9 +97,9 @@
 			);
 			dependencies = (
 			);
-			name = obsfuckate;
+			name = ObfuscateCLI;
 			productName = obsfuckate;
-			productReference = 33EEEA2F2526FC1800110544 /* obsfuckate */;
+			productReference = 33EEEA2F2526FC1800110544 /* ObfuscateCLI */;
 			productType = "com.apple.product-type.tool";
 		};
 /* End PBXNativeTarget section */
@@ -108,14 +108,15 @@
 		33EEEA272526FC1800110544 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 1230;
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1530;
 				TargetAttributes = {
 					33EEEA2E2526FC1800110544 = {
 						CreatedOnToolsVersion = 12.0;
 					};
 				};
 			};
-			buildConfigurationList = 33EEEA2A2526FC1800110544 /* Build configuration list for PBXProject "obsfuckate" */;
+			buildConfigurationList = 33EEEA2A2526FC1800110544 /* Build configuration list for PBXProject "ObfuscateCLI" */;
 			compatibilityVersion = "Xcode 9.3";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -128,7 +129,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				33EEEA2E2526FC1800110544 /* obsfuckate */,
+				33EEEA2E2526FC1800110544 /* ObfuscateCLI */,
 			);
 		};
 /* End PBXProject section */
@@ -181,9 +182,11 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -241,9 +244,11 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -267,6 +272,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = FUJX4L72NH;
 				ENABLE_HARDENED_RUNTIME = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -277,6 +283,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = FUJX4L72NH;
 				ENABLE_HARDENED_RUNTIME = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -286,7 +293,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		33EEEA2A2526FC1800110544 /* Build configuration list for PBXProject "obsfuckate" */ = {
+		33EEEA2A2526FC1800110544 /* Build configuration list for PBXProject "ObfuscateCLI" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				33EEEA342526FC1800110544 /* Debug */,
@@ -295,7 +302,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		33EEEA362526FC1800110544 /* Build configuration list for PBXNativeTarget "obsfuckate" */ = {
+		33EEEA362526FC1800110544 /* Build configuration list for PBXNativeTarget "ObfuscateCLI" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				33EEEA372526FC1800110544 /* Debug */,

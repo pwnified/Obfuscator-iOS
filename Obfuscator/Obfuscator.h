@@ -36,7 +36,7 @@
      *
      * See: http://www.raywenderlich.com/46223/ios-app-security-analysis-part-2
      * See: http://www.splinter.com.au/2014/09/16/storing-secret-keys/
-     * @param class A class object that should NOT appear 'interesting' (as strings embedded in the source-code) to prying eyes. Do not use [Obfuscator class].
+     * @param klass A class object that should NOT appear 'interesting' (as strings embedded in the source-code) to prying eyes. Do not use [Obfuscator class].
      * @warning The salt used to obfuscate must be exactly the same for reveal to work.
      * @return Obfuscator class instance.
      */
@@ -124,7 +124,7 @@
      * convenience. 
      * In order to use this library from within Swift code, you MUST use this library to store the salts used
      * to obfuscate your strings. You must use it from within your Objective-C code however.
-     * @param class List of classes to be used as salt. i.e. [NSString class], [NSObject class]...
+     * @param klass List of classes to be used as salt. i.e. [NSString class], [NSObject class]...
      * @param key The key associated with the list of classes in key-value database.
      * @warning Does not get bridged to Swift. Use from within Objective-C code so that the salts will become
      * available to Swift code by using: `+ (NSString *)reveal:UsingStoredSalt:` or `+ (instancetype)newUsingStoredSalt:`.
